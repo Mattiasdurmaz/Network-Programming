@@ -1,0 +1,163 @@
+# Lab 8 - Simple Chat Application GUI Client
+
+
+import socket
+import tkinter as tk
+from tkinter import scrolledtext
+
+
+win = tk.Tk()
+win.title("Lab 8 GUI Chat Client")
+
+
+frame = tk.Frame(win)
+frame.pack(padx=10, pady=10)
+
+
+tk.Label(frame, text="IP:port").grid(row=0, column=0)
+entryIP = tk.Entry(frame, width=18)
+entryIP.grid(row=0, column=1)
+entryIP.insert(0, "localhost:60003")
+
+
+btnConnect = tk.Button(frame, text="Connect")
+btnConnect.grid(row=0, column=2)
+
+
+txtMessages = scrolledtext.ScrolledText(win, width=50, height=20)
+txtMessages.pack(padx=10, pady=10)
+
+
+entryMsg = tk.Entry(win, width=40)
+entryMsg.pack(padx=10, pady=5, side=tk.LEFT)
+
+
+btnSend = tk.Button(win, text="Send")
+btnSend.pack(padx=10, pady=5, side=tk.LEFT)
+
+
+sock = None
+
+
+#Methods you must fill in
+
+
+def printToMessage(msg: str):
+    txtMessages.insert(tk.END, msg + "\n")
+    txtMessages.see(tk.END)
+
+
+
+
+def disconnect():
+    global sock
+    if sock:
+        try:
+            sock.close()
+            printToMessage("Disconnected from server.")
+        except Exception as e:
+            printToMessage(f"Error during disconnect: {e}")
+    sock = None
+
+
+
+
+def tryToConnect():
+    global sock
+    if sock is not None:
+        printToMessage("Already connected.")
+        return
+   
+    addr = entryIP.get().strip()
+
+
+    if ":" not in addr:
+        printToMessage("Invalid address format. Use IP:port")
+        return
+
+
+    host, port_str = addr.split(":")
+    try:
+        port = int(port_str)
+    except ValueError:
+        printToMessage("Invalid port number.")
+        return
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.1)
+        s.connect((host, port))
+        s.setblocking(False)
+        sock = s
+        printToMessage(f"Connected to {host}:{port}")
+
+
+    except Exception as e:
+        printToMessage(f"Connection failed: {e}")
+        sock = None
+
+
+
+
+def sendMessage():
+    global sock
+    if sock is None:
+        printToMessage("Not connected to any server.")
+        return
+   
+    msg = entryMsg.get().strip()
+    if not msg:
+        return
+
+
+    try:
+        sock.sendall(msg.encode("ascii"))
+        entryMsg.delete(0, tk.END)
+    except Exception as e:
+        printToMessage(f"Failed to send message: {e}")
+
+
+def pollMessage():
+    global sock
+    if sock:
+        try:
+            data = sock.recv(2048)
+            if data:
+                text = data.decode("ascii", errors="ignore")
+                printToMessage(text.strip())
+        except socket.error:
+            pass
+        except Exception as e:
+            printToMessage(f"Error receiving message: {e}")
+            disconnect()
+
+
+
+
+# Hook up GUI events
+
+
+
+
+btnConnect.config(command=tryToConnect)
+btnDisconnect = tk.Button(command=disconnect)
+btnSend.config(command=sendMessage)
+
+
+def periodicPoll():
+    pollMessage()
+    win.after(200, periodicPoll)
+
+
+periodicPoll()
+
+
+win.mainloop()
+
+
+
+
+
+
+
+
+

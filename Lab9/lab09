@@ -1,0 +1,155 @@
+# lab09.py
+# Lab 9 – Compression, entropy and text statistics
+# Author: you
+
+
+import random
+import zlib
+import math
+
+
+# --------------------
+# Part 1 – Text encoding
+# --------------------
+
+
+def explain_encodings():
+    txt = 'ABC abc'
+    b_ascii = bytearray(txt, "ASCII")
+    print("ASCII example:")
+    print(txt, len(txt), len(b_ascii), list(b_ascii))
+
+
+    try:
+        # ASCII cannot encode Swedish
+        b_fail = bytearray('ÅÄÖ åäö', "ASCII")
+    except Exception as e:
+        print("ASCII cannot encode 'ÅÄÖ åäö':", e)
+
+
+    # Latin-1 can encode Swedish
+    b_latin1 = bytearray('ÅÄÖ', "latin-1")
+    print("LATIN-1 for ÅÄÖ:", list(b_latin1))
+
+
+    # UTF-8
+    b_utf8 = bytearray("ÅÄÖ", "utf-8")
+    print("UTF-8 for ÅÄÖ:", list(b_utf8))
+
+
+
+
+# --------------------
+# Part 2 – Histogram & Entropy
+# --------------------
+
+
+def makeHisto(byteArr):
+    """Return histogram (list of length 256)."""
+    histo = [0]*256
+    for b in byteArr:
+        histo[b] += 1
+    return histo
+
+
+def makeProb(histo):
+    """Normalize histogram to probability distribution."""
+    total = sum(histo)
+    return [count/total for count in histo]
+
+
+def entropy(prob):
+    """Compute entropy in bits per symbol."""
+    H = 0.0
+    for p in prob:
+        if p > 0:
+            H += p * math.log2(1/p)
+    return H
+
+
+
+
+# --------------------
+# Main program
+# --------------------
+
+
+def main():
+    print("=== Lab 9 – Encoding & Compression ===\n")
+
+
+    # Part 1
+    explain_encodings()
+    print("\n--- Part 1 done ---\n")
+
+
+    # Part 2 – read the file
+    print("Reading file exempeltext.txt …")
+    with open("exempeltext.txt", "r", encoding="latin-1") as f:
+        txt = f.read()
+
+
+    byteArr = bytearray(txt, "utf-8")
+
+
+    print("Symbols (characters):", len(txt))
+    print("Bytes (UTF-8):", len(byteArr))
+    print("Explanation: UTF-8 can take more bytes for non-ASCII characters\n")
+
+
+    histo = makeHisto(byteArr)
+    prob = makeProb(histo)
+    H = entropy(prob)
+    print(f"Entropy H = {H:.4f} bits/symbol")
+
+
+    # Minimum theoretical compressed size
+    min_bytes = math.ceil(len(byteArr)*H/8)
+    print("Minimum possible compressed size (memory-free source):", min_bytes, "bytes")
+
+
+    # Shuffle
+    theCopy = byteArr.copy()
+    random.shuffle(theCopy)
+    assert byteArr != theCopy
+
+
+    # Compress shuffled
+    compressed_copy = zlib.compress(bytes(theCopy))
+    copy_len = len(compressed_copy)
+    print("\nCompressed shuffled (copy):")
+    print("bytes:", copy_len, "bits/symbol:", (copy_len*8)/len(theCopy))
+
+
+    # Compress original
+    compressed_orig = zlib.compress(bytes(byteArr))
+    orig_len = len(compressed_orig)
+    print("\nCompressed original:")
+    print("bytes:", orig_len, "bits/symbol:", (orig_len*8)/len(byteArr))
+
+
+    print("\nSummary:")
+    print("- Entropy (smallest theoretical):", H)
+    print("- zlib on shuffled   :", (copy_len*8)/len(theCopy))
+    print("- zlib on original   :", (orig_len*8)/len(byteArr))
+
+
+    # Part 5 – repetition test
+    t1 = """I hope this lab never ends because
+it is so incredibly thrilling!"""
+    t10 = t1 * 10
+
+
+    c1 = len(zlib.compress(t1.encode("utf-8")))
+    c10 = len(zlib.compress(t10.encode("utf-8")))
+    print("\nRepetitive text test:")
+    print("t1 length:", len(t1), "compressed size:", c1)
+    print("t10 length:", len(t10), "compressed size:", c10)
+    print("Explanation: repeated patterns compress better with zlib.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+

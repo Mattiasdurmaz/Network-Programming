@@ -1,0 +1,34 @@
+# lab10.py
+# Lab 10 - Regular Expressions
+
+
+import re
+
+# Task 1 and 2 Email regex
+
+
+mtxt = "jox r.nohre@jth.hj.se, bjox@se, adam@example.com, jox@jox@jox.com"
+
+
+emails = re.findall( r'\b\w+(?:\.\w+)*@\w+(?:\.\w+)+\b', mtxt)
+
+print("Valid emails found:")
+for e in emails:
+    print(e)
+
+
+# Task 3 The Simpsons
+
+with open("tabla.html", encoding="utf-8") as f:
+    html = f.read()
+
+
+pattern = re.compile(r'<td class="svtTablaTime">\s*(\d+\.\d+)\s*</td>'
+    r'\s*<td.*?>\s*<h4.*?>\s*Simpsons\s*</h4>',re.MULTILINE)
+
+times = pattern.findall(html)
+
+print("\nSimpsons air times:")
+for t in times:
+    print(t)
+    
